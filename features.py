@@ -656,8 +656,8 @@ async def c_about(event, arg):
 
 async def c_ping(event, arg):
     t0 = time.perf_counter()
-    await event.edit("...")
-    await event.edit(f"pong 🏓 {int((time.perf_counter() - t0) * 1000)}ms")
+    await event.edit("در حال بررسی اتصال")
+    await event.edit(f"پاسخ: {int((time.perf_counter() - t0) * 1000)} ms")
 
 
 async def c_time(event, arg):
@@ -2028,11 +2028,51 @@ HANDLERS = {
 assert set(ALIASES.values()) == set(HANDLERS), set(ALIASES.values()) ^ set(HANDLERS)
 
 
-class QuotedCommandEvent:
-    """سازگار با event تلthon؛ خروجی‌های event.edit را به پاسخ Quote تبدیل می‌کند.
+# همه‌ی پاسخ‌های دستورات به شکل نقل‌قول و بولد ارسال می‌شوند.
+# ایموجی‌ها از متن خروجی حذف می‌شوند تا ظاهر پاسخ‌ها یکدست بماند.
+_COMMAND_EMOJI_RE = re.compile(
+    "["
+    "\\U0001F1E6-\\U0001F1FF"
+    "\\U0001F300-\\U0001FAFF"
+    "\\U0001FC00-\\U0001FFFD"
+    "\\u2300-\\u23FF"
+    "\\u2600-\\u27BF"
+    "\\uFE0F\\uFE0E\\u200D\\u20E3"
+    "\\U0001F3FB-\\U0001F3FF"
+    "\\U000E0020-\\U000E007F"
+    "]+"
+)
 
-    اولین edit یک پیام ریپلای‌شده به دستور می‌فرستد و editهای بعدی همان پاسخ را
-    ویرایش می‌کنند؛ بنابراین دستور اصلی حذف نمی‌شود و خروجی‌ها حالت Quote دارند.
+
+def _clean_command_output(value):
+    """متن پاسخ را بدون ایموجی و بدون خروجی خالی برمی‌گرداند."""
+    if not isinstance(value, str):
+        return value
+    value = _COMMAND_EMOJI_RE.sub("", value)
+    value = re.sub(r"[ \t]+\n", "\n", value).strip()
+    # هر دستور باید حداقل یک خط پاسخ قابل‌نمایش داشته باشد.
+    return value or "انجام شد"
+
+
+def _quote_bold_entities(text, existing=None):
+    """ساخت entityهای بولد و Blockquote با offset برحسب UTF-16 تلگرام."""
+    length = len(text.encode("utf-16-le")) // 2
+    entities = list(existing or [])
+    if length:
+        entities.extend((
+            types.MessageEntityBold(offset=0, length=length),
+        ))
+        blockquote_type = getattr(types, "MessageEntityBlockquote", None)
+        if blockquote_type is not None:
+            entities.append(blockquote_type(offset=0, length=length))
+    return entities
+
+
+class QuotedCommandEvent:
+    """پاسخ هر دستور را به پیام دستور ریپلای می‌کند و Quote + Bold می‌سازد.
+
+    اولین event.edit یک پیام جدیدِ ریپلای‌شده می‌فرستد؛ ویرایش‌های بعدی
+    همان پیام را به‌روزرسانی می‌کنند. بنابراین پیام دستور دست‌نخورده می‌ماند.
     """
     def __init__(self, event):
         self._event = event
@@ -2041,11 +2081,58 @@ class QuotedCommandEvent:
     def __getattr__(self, name):
         return getattr(self._event, name)
 
+    def _prepare(self, args, kwargs):
+        args = list(args)
+        kwargs = dict(kwargs)
+        text = args[0] if args else kwargs.pop("message", None)
+        if not isinstance(text, str):
+            return args, kwargs, None
+
+        text = _clean_command_output(text)
+
+        # اگر خروجی HTML/Markdown داشته باشد، ابتدا آن را به متن و entity تبدیل کن.
+        parse_mode = kwargs.pop("parse_mode", getattr(self._event.client, "parse_mode", None))
+        parsed_entities = []
+        try:
+            parser = utils.sanitize_parse_mode(parse_mode)
+            if parser:
+                text, parsed_entities = parser.parse(text)
+        except Exception:
+            # در صورت خطای parser، پاسخ ساده و امن ارسال شود.
+            parsed_entities = []
+
+        supplied_entities = kwargs.pop("formatting_entities", None) or []
+        entities = _quote_bold_entities(text, list(parsed_entities) + list(supplied_entities))
+        kwargs["formatting_entities"] = entities
+        kwargs["parse_mode"] = None
+
+        if args:
+            args[0] = text
+        else:
+            kwargs["message"] = text
+        return args, kwargs, text
+
     async def edit(self, *args, **kwargs):
+        args, kwargs, text = self._prepare(args, kwargs)
         if self._quoted_response is None:
-            self._quoted_response = await self._event.reply(*args, **kwargs)
+            if text is None:
+                # خروجی‌های غیرمتنی را هم به‌صورت ریپلای ارسال کن.
+                self._quoted_response = await self._event.reply(*args, **kwargs)
+            else:
+                self._quoted_response = await self._event.reply(*args, **kwargs)
             return self._quoted_response
+        if text is None:
+            return await self._quoted_response.edit(*args, **kwargs)
         return await self._quoted_response.edit(*args, **kwargs)
+
+    async def reply(self, *args, **kwargs):
+        args, kwargs, _ = self._prepare(args, kwargs)
+        return await self._event.reply(*args, **kwargs)
+
+    async def respond(self, *args, **kwargs):
+        # پاسخ‌های respond هم به پیام دستور متصل می‌شوند.
+        args, kwargs, _ = self._prepare(args, kwargs)
+        return await self._event.reply(*args, **kwargs)
 
 
 async def commands(event):
