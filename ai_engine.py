@@ -8,7 +8,7 @@ PROVIDERS = {
     "anthropic": {"label": "Claude", "env": "ANTHROPIC_API_KEY", "model": "claude-3-5-haiku-latest", "kind": "anthropic"},
     "gemini": {"label": "Google Gemini", "env": "GEMINI_API_KEY", "model": "gemini-3.8-flash", "kind": "gemini"},
     "deepseek": {"label": "DeepSeek", "env": "DEEPSEEK_API_KEY", "base": "https://api.deepseek.com/v1", "model": "deepseek-chat", "kind": "openai"},
-    "groq": {"label": "Groq", "env": "GROQ_API_KEY", "base": "https://api.groq.com/openai/v1", "model": "llama-3.3-70b-versatile", "kind": "openai"},
+    "groq": {"label": "Groq", "env": "GROQ_API_KEY", "base": "https://api.groq.com/openai/v1", "model": "openai/gpt-oss-120b", "kind": "openai"},
     "openrouter": {"label": "OpenRouter", "env": "OPENROUTER_API_KEY", "base": "https://openrouter.ai/api/v1", "model": "openai/gpt-4o-mini", "kind": "openai"},
     "mistral": {"label": "Mistral", "env": "MISTRAL_API_KEY", "base": "https://api.mistral.ai/v1", "model": "mistral-small-latest", "kind": "openai"},
     "xai": {"label": "xAI", "env": "XAI_API_KEY", "base": "https://api.x.ai/v1", "model": "grok-2-latest", "kind": "openai"},
