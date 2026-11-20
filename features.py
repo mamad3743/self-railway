@@ -2028,17 +2028,38 @@ HANDLERS = {
 assert set(ALIASES.values()) == set(HANDLERS), set(ALIASES.values()) ^ set(HANDLERS)
 
 
+class QuotedCommandEvent:
+    """سازگار با event تلthon؛ خروجی‌های event.edit را به پاسخ Quote تبدیل می‌کند.
+
+    اولین edit یک پیام ریپلای‌شده به دستور می‌فرستد و editهای بعدی همان پاسخ را
+    ویرایش می‌کنند؛ بنابراین دستور اصلی حذف نمی‌شود و خروجی‌ها حالت Quote دارند.
+    """
+    def __init__(self, event):
+        self._event = event
+        self._quoted_response = None
+
+    def __getattr__(self, name):
+        return getattr(self._event, name)
+
+    async def edit(self, *args, **kwargs):
+        if self._quoted_response is None:
+            self._quoted_response = await self._event.reply(*args, **kwargs)
+            return self._quoted_response
+        return await self._quoted_response.edit(*args, **kwargs)
+
+
 async def commands(event):
     prefix, name = event.pattern_match.group(1), event.pattern_match.group(2).lower()
     if name not in ALIASES or (prefix == "/" and name not in SLASH_OK):
         return
     cmd = ALIASES[name]
     arg = (event.pattern_match.group(3) or "").strip()
+    quoted_event = QuotedCommandEvent(event)
     try:
-        await HANDLERS[cmd](event, arg)
+        await HANDLERS[cmd](quoted_event, arg)
     except Exception as e:  # noqa
         log.warning("command %s failed: %r", cmd, e)
-        await safe_edit(event, f"⚠️ خطا: {type(e).__name__}: {str(e)[:150]}")
+        await safe_edit(quoted_event, f"⚠️ خطا: {type(e).__name__}: {str(e)[:150]}")
 
 
 # ───────────── رویدادها ─────────────
