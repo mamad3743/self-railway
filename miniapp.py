@@ -253,7 +253,7 @@ a.dom{color:var(--o2);font-size:12px;text-decoration:none;direction:ltr;unicode-
 <small>برای Custom، متغیرهای AI_BASE_URL و AI_API_KEY و AI_CUSTOM_MODEL را در Railway تنظیم کن.</small>
 </div>
 <div class="card"><h3>🧪 اتصال و سرویس‌های فعال</h3><div id="ai-providers" class="grid"></div><button id="ai-refresh" class="ghost" style="margin-top:8px">↻ بررسی دوباره سرویس‌ها</button></div>
-<div class="card"><h3>💬 آزمایش هوش مصنوعی</h3><textarea id="ai-prompt" rows="4" placeholder="هر چیزی می‌خوای بپرس…"></textarea><button id="ai-ask" class="on">ارسال به هوش مصنوعی 🚀</button><div id="ai-answer" style="white-space:pre-wrap;overflow-wrap:anywhere;margin-top:12px;line-height:2"></div></div>
+<div class="card"><h3>💬 آزمایش هوش مصنوعی</h3><textarea id="ai-prompt" rows="4" placeholder="هر چیزی می‌خوای بپرس…"></textarea><div class="row"><button id="ai-ask" class="on">ارسال به هوش مصنوعی 🚀</button><button id="ai-clear" class="ghost">🧹 پاک‌کردن حافظه</button></div><div id="ai-answer" style="white-space:pre-wrap;overflow-wrap:anywhere;margin-top:12px;line-height:2"></div></div>
 </div>
 <div id="t-feats" class="hidden"><div class="card"><h3>🎛 قابلیت‌ها <span class="pill" id="oncount"></span></h3><div class="grid" id="feats" style="margin-top:8px"></div>
 <small>سبز = روشن. روی هر قابلیت بزن روشن/خاموش می‌شه و بلافاصله به سلف ارسال می‌شه. برای راهنمای کامل روی بات /panel بزن.</small></div></div>

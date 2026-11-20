@@ -2186,6 +2186,13 @@ async def commands(event):
     except Exception as e:  # noqa
         log.warning("command %s failed: %r", cmd, e)
         await safe_edit(quoted_event, f"⚠️ خطا: {type(e).__name__}: {str(e)[:150]}")
+    finally:
+        # پس از ارسال پاسخ، پیام دستور کاربر حذف می‌شود.
+        # پاسخ ریپلای‌شده باقی می‌ماند.
+        try:
+            await event.delete()
+        except Exception as delete_error:  # noqa
+            log.debug("could not delete command %s: %r", cmd, delete_error)
 
 
 # ───────────── رویدادها ─────────────
