@@ -1,4 +1,4 @@
-telethon==1.36.0
+telethon>=1.40.0,<2
 aiohttp>=3.9
 tzdata
 gTTS>=2.5

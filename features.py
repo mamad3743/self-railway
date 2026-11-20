@@ -757,9 +757,11 @@ FMT = {
     "spoiler": types.MessageEntitySpoiler,
     "strike": types.MessageEntityStrike,
     "underline": types.MessageEntityUnderline,
+    "quote": getattr(types, "MessageEntityBlockquote", None),
 }
 FMT_ALIAS = {"بولد": "bold", "ایتالیک": "italic", "مونو": "mono",
-             "اسپویلر": "spoiler", "خط‌خورده": "strike", "زیرخط": "underline"}
+             "اسپویلر": "spoiler", "خط‌خورده": "strike", "زیرخط": "underline",
+             "نقل‌قول": "quote", "نقل قول": "quote", "blockquote": "quote"}
 
 
 async def c_format(event, arg):
@@ -770,7 +772,9 @@ async def c_format(event, arg):
     else:
         mode = FMT_ALIAS.get(low, low)
         if mode not in FMT:
-            return await event.edit("حالت‌ها: " + " | ".join(FMT) + " | off")
+            return await event.edit("حالت‌ها: bold | italic | mono | spoiler | strike | underline | quote | off")
+        if FMT[mode] is None:
+            return await event.edit("حالت Quote در نسخه فعلی Telethon پشتیبانی نمی‌شه؛ وابستگی‌ها رو به‌روزرسانی کن.")
         CFG["fmt"], F["format"] = mode, True
         msg = f"فرمت خودکار روشن شد ✅ ({mode})"
     save_settings()
