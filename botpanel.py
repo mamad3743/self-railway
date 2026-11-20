@@ -466,6 +466,36 @@ async def panel_ctx(page, session, token) -> dict:
 async def route_panel(session, token, data):
     """pn:… ← (کپشن، کیبورد، پیام کوتاه) یا None."""
     toast = None
+    parts = data.split(":")
+    if len(parts) == 4 and parts[0:2] == ["pn", "ct"]:
+        import core
+        choice, back = parts[2], parts[3]
+        if choice not in ("bio", "name"):
+            return None
+        core.CFG["target"] = "bio" if choice == "bio" else "last_name"
+        core.save_settings()
+        if "refresh" in core.hooks:
+            await core.hooks["refresh"]()
+        toast = "محل نمایش ساعت: " + ("بیو" if choice == "bio" else "نام خانوادگی") + " ✅"
+        data = f"pn:f:clock:{back}"
+    if len(parts) == 4 and parts[0:2] == ["pn", "cf"]:
+        import core
+        choice, back = parts[2], parts[3]
+        if choice in core.CLOCK_FONT_NAMES:
+            core.CFG["font"] = choice
+            core.save_settings()
+            if "refresh" in core.hooks:
+                await core.hooks["refresh"]()
+            toast = "فونت ساعت: " + core.CLOCK_FONT_NAMES[choice] + " ✅"
+        elif choice == "menu":
+            data = f"pn:cf:menu:{back}"
+            toast = None
+        elif choice == "help":
+            toast = "برای نام: .ساعت اسم علی | فامیلی: .ساعت فامیلی رضایی"
+        else:
+            return None
+        if choice != "menu":
+            data = f"pn:f:clock:{back}"
     t = panel.parse_toggle(data)
     if t:
         key, val, back = t

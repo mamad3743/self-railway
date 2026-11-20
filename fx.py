@@ -1,10 +1,11 @@
 """نرخ ارز / طلا / سکه (بازار آزاد ایران) با چند منبع، کش دیسکی و گزارش دقیق خطا.
 
 ترتیب منابع:
-  ۱) JSON سبک tgju (call4 ← call3 ← call2 ← call) — بدون parse کردن HTML، سریع‌ترین و پایدارترین
-  ۲) صفحه‌های HTML سایت tgju (روش قدیمی، با regex) — اگه JSON جواب نداد
-  ۳) آخرین نرخِ ذخیره‌شده روی دیسک (با سن مشخص) — اگه هر دو منبع جواب ندادن
-هیچ منبعی جواب نداد و کشی هم نبود ← FxError با دلیلِ هر منبع (تا بشه عیب‌یابی کرد).
+  ۱) NerkhAra — API عمومی JSON بدون کلید، مناسب دسترسی از IP خارج ایران
+  ۲) Iran Market — آینه‌ی عمومی JSON روی GitHub
+  ۳) TGJU JSON و صفحه‌های HTML به‌عنوان منابع پشتیبان
+  ۴) آخرین نرخِ ذخیره‌شده روی دیسک با سن مشخص
+هیچ منبعی جواب نداد و کشی هم نبود ← FxError با دلیلِ هر منبع.
 
 متغیر اختیاری FX_PROXY (مثلاً http://host:port): اگه tgju به IP سرورت جواب نمی‌ده، از این پروکسی رد می‌شه.
 """
@@ -19,10 +20,16 @@ import aiohttp
 
 from core import CFG, log, save_settings
 
+# منابعی که از بیرون ایران هم قابل دسترسی‌اند؛ NerkhAra داده‌ی بازار آزاد را
+# هر ۱۰ دقیقه و بدون API key منتشر می‌کند. GitHub mirror پشتیبان نیم‌ساعته است.
+PUBLIC_URLS = [
+    "https://nerkhara.com/api/v1/latest.json",
+    "https://raw.githubusercontent.com/iran-market/iran-market.github.io/main/data/popular.json",
+]
 JSON_URLS = [f"https://{h}.tgju.org/ajax.json" for h in ("call4", "call3", "call2", "call")]
 HTML_URLS = ["https://www.tgju.org/currency", "https://www.tgju.org/gold-chart", "https://www.tgju.org/coin"]
 TIMEOUT = 10  # ثانیه برای هر درخواست
-MEM_TTL = 30  # ثانیه: درخواست‌های پشت‌سرهم دوباره به شبکه نمی‌رن
+MEM_TTL = 60  # ثانیه: درخواست‌های پشت‌سرهم دوباره به شبکه نمی‌رن
 STALE_MAX = 7 * 86400  # کش دیسکی تا یک هفته به‌عنوان جایگزین قابل نمایشه
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
@@ -34,6 +41,20 @@ MIN_RIAL = {"price_dollar_rl": 100_000, "price_eur": 100_000, "price_gbp": 100_0
             "geram18": 1_000_000, "mesghal": 4_000_000, "sekee": 10_000_000, "sekeb": 10_000_000, "nim": 5_000_000,
             "rob": 3_000_000, "gerami": 1_000_000}
 SLUGS = tuple(MIN_RIAL)
+
+# نمادهای API عمومی → slugهای داخلی؛ تمام قیمت‌های IRT/تومان به ریال تبدیل می‌شوند
+NERKHARA_IDS = {
+    "usd": "price_dollar_rl", "eur": "price_eur", "gbp": "price_gbp",
+    "aed": "price_aed", "try": "price_try", "gold-18k": "geram18",
+    "gold-mesghal": "mesghal", "coin-emami": "sekee",
+    "coin-bahar-azadi": "sekeb", "coin-half": "nim",
+    "coin-quarter": "rob", "coin-gram": "gerami",
+}
+MARKET_SYMBOLS = {
+    "USD_IRR_FREE": "price_dollar_rl", "EUR_IRR_FREE": "price_eur",
+    "GBP_IRR_FREE": "price_gbp", "GOLD_18K_IRR": "geram18",
+    "COIN_EMAMI_IRR": "sekee", "USDT_IRR": "usdt",
+}
 
 _mem = {"t": 0.0, "data": {}, "source": ""}
 _last_save = [0.0]
@@ -63,6 +84,16 @@ def _num(raw):
         return None
 
 
+def _pct(raw):
+    """درصد تغییر با حفظ علامت منفی؛ _num عمداً علامت را برای قیمت‌ها حذف می‌کند."""
+    if raw is None:
+        return None
+    try:
+        return float(str(raw).translate(_DIG).replace("−", "-").replace(",", "").strip())
+    except (TypeError, ValueError):
+        return None
+
+
 def _rial(slug, value):
     """عددهایی که به‌اشتباه به تومان‌ان (خیلی کوچیک‌تر از حد منطقی) به ریال برمی‌گردن."""
     if value is None:
@@ -82,6 +113,56 @@ def _host(url) -> str:
     p = urlparse(url)
     return p.netloc + (p.path if p.path not in ("", "/") else "")
 
+
+# ───────────── منابع عمومی خارج از ایران ─────────────
+def parse_nerkhara(obj: dict) -> dict:
+    """API نرخه‌آرا: latest.json با items[] و latest/{id}.json با item{}؛ قیمت IRT یعنی تومان."""
+    if isinstance(obj, dict) and (obj.get("meta") or {}).get("stale"):
+        raise ValueError("داده‌ی NerkhAra کهنه است")
+    rows = obj.get("items") if isinstance(obj, dict) else None
+    if not isinstance(rows, list) and isinstance(obj, dict) and isinstance(obj.get("item"), dict):
+        rows = [obj["item"]]
+    if not isinstance(rows, list):
+        raise ValueError("ساختار NerkhAra نامعتبر است")
+    out = {}
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        slug = NERKHARA_IDS.get(str(item.get("id", "")).lower())
+        price = _num(item.get("price"))
+        if slug and price and not item.get("stale", False) and str(item.get("unit", "IRT")).upper() == "IRT":
+            out[slug] = {"p": price * 10, "pct": _pct(item.get("change_pct"))}
+    if not out:
+        raise ValueError("نرخه‌آرا نرخ قابل استفاده برنگرداند")
+    return out
+
+def parse_market_mirror(obj: dict) -> dict:
+    """GitHub JSON mirror؛ قیمت‌ها برحسب تومان هستند و باید به ریال نرمال شوند."""
+    if isinstance(obj, dict) and (obj.get("meta") or {}).get("stale"):
+        raise ValueError("آینه‌ی Iran Market داده‌ی کهنه دارد")
+    rows = obj.get("data") if isinstance(obj, dict) else None
+    if not isinstance(rows, list):
+        raise ValueError("ساختار Iran Market نامعتبر است")
+    out = {}
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        slug = MARKET_SYMBOLS.get(str(item.get("symbol", "")).upper())
+        price = _num(item.get("price"))
+        if slug and price and not item.get("stale", False):
+            out[slug] = {"p": price * 10, "pct": _pct(item.get("change_pct"))}
+    if not out:
+        raise ValueError("GitHub mirror نرخ قابل استفاده برنگرداند")
+    return out
+
+async def _fetch_public(session, url, parser):
+    async with session.get(url, proxy=_proxy()) as r:
+        r.raise_for_status()
+        raw = await r.content.read(3_000_000)
+    try:
+        return parser(json.loads(raw.decode("utf-8", "ignore")))
+    except (ValueError, TypeError, json.JSONDecodeError) as e:
+        raise ValueError(f"JSON عمومی نامعتبر: {e}")
 
 # ───────────── منبع ۱: JSON ─────────────
 def parse_json(obj) -> dict:
@@ -177,6 +258,17 @@ async def fetch_rates():
     errors = []
     timeout = aiohttp.ClientTimeout(total=TIMEOUT)
     async with aiohttp.ClientSession(timeout=timeout, headers=HEADERS) as s:
+        # اول منابع عمومی مستقل از IP ایران؛ بعد TGJU برای پوشش نمادهای قدیمی‌تر.
+        for url, parser in ((PUBLIC_URLS[0], parse_nerkhara), (PUBLIC_URLS[1], parse_market_mirror)):
+            try:
+                data = await _fetch_public(s, url, parser)
+            except Exception as e:  # noqa
+                errors.append(f"{_host(url)}: {_why(e)}")
+                log.warning("fx public %s: %r", url, e)
+                continue
+            _remember(data, "nerkhara" if "nerkhara" in url else "iran-market")
+            return data, {"source": "nerkhara" if "nerkhara" in url else "iran-market",
+                          "t": time.time(), "stale": False, "errors": errors}
         for url in JSON_URLS:  # یکی‌یکی تا یکی جواب بده
             try:
                 data = await _fetch_json(s, url)

@@ -12,6 +12,7 @@ import tempfile
 import ipaddress
 import operator
 import urllib.parse
+import unicodedata
 import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -129,9 +130,11 @@ async def sync_profile(clean: bool = False):
     try:
         me = await C().get_me()
         full = await C()(GetFullUserRequest(me))
-        cur_last = me.last_name or ""
+        cur_first, cur_last = me.first_name or "", me.last_name or ""
         cur_bio = full.full_user.about or ""
-        base_last, base_bio = strip_clock(cur_last), strip_bio(cur_bio)
+        base_first = (CFG.get("profile_first_name") or cur_first).strip()
+        base_last = (CFG.get("profile_last_name") or strip_clock(cur_last)).strip()
+        base_bio = strip_bio(cur_bio)
 
         ctext = clock_text() if (F["clock"] and not clean) else ""
         dtext = f"📅 {jalali_short()}" if (F["date"] and not clean) else ""
@@ -145,6 +148,8 @@ async def sync_profile(clean: bool = False):
         last = last[:64]
 
         kw = {}
+        if base_first != cur_first:
+            kw["first_name"] = base_first[:64]
         if last != cur_last:
             kw["last_name"] = last
         if bio != cur_bio:
@@ -262,6 +267,9 @@ alias("unmute", "unmute", "لغوسکوت")
 alias("block", "block", "بلاک")
 alias("unblock", "unblock", "آنبلاک")
 alias("info", "info", "اطلاعات")
+alias("chatstats", "chatstats", "آمارچت", "آمار_چت")
+alias("fonts", "fonts", "فونت")
+alias("dcinfo", "dcinfo", "دیسی", "دی‌سی")
 alias("save", "save", "ذخیره")
 alias("download", "download", "دانلود")
 alias("ai", "ai", "هوش")
@@ -673,24 +681,42 @@ async def c_id(event, arg):
 
 
 async def c_clock(event, arg):
-    if arg == "on":
+    a = (arg or "").strip()
+    low = a.lower()
+    if not a or low in ("font", "fonts", "فونت", "فونت‌ها"):
+        names = "\n".join(f"{k}. {core.CLOCK_FONT_NAMES[k]}" for k in core.CLOCK_FONT_NAMES)
+        return await event.edit("🕐 تنظیمات ساعت بیو\n\n" + names +
+            "\n\nبرای انتخاب: <code>.ساعت فونت 3</code>\n"
+            "محل نمایش: <code>.ساعت bio</code> یا <code>.ساعت name</code>\n"
+            "تغییر نام: <code>.ساعت اسم نام</code> و <code>.ساعت فامیلی نام</code>")
+    if low == "on":
         F["clock"] = True
         msg = "ساعت روشن شد ✅"
-    elif arg == "off":
+    elif low == "off":
         F["clock"] = False
         msg = "ساعت خاموش شد ❌"
-    elif arg in ("name", "bio"):
-        CFG["target"] = "bio" if arg == "bio" else "last_name"
+    elif low in ("name", "bio"):
+        CFG["target"] = "bio" if low == "bio" else "last_name"
         msg = "محل ساعت عوض شد ✅"
-    elif arg.startswith("font") and arg.split()[-1] in core.FONTS:
-        CFG["font"] = arg.split()[-1]
-        msg = "فونت عوض شد ✅"
-    elif arg.startswith("emoji"):
-        e = arg[5:].strip()
-        CFG["emoji"] = "" if e in ("", "off", "none") else e[:2]
+    elif low.startswith(("font ", "فونت ")):
+        n = a.split(maxsplit=1)[1].strip().translate(FA2EN)
+        if n not in core.FONTS:
+            return await event.edit("شماره فونت معتبر نیست؛ از ۱ تا ۹ انتخاب کن.")
+        CFG["font"] = n
+        msg = f"فونت ساعت روی {core.CLOCK_FONT_NAMES[n]} تنظیم شد ✅"
+    elif a.startswith(("اسم ", "نام ", "first ")):
+        CFG["profile_first_name"] = a.split(maxsplit=1)[1].strip()[:64]
+        msg = "نام پروفایل تنظیم شد ✅"
+    elif a.startswith(("فامیلی ", "نام‌خانوادگی ", "last ")):
+        CFG["profile_last_name"] = a.split(maxsplit=1)[1].strip()[:64]
+        msg = "نام خانوادگی پروفایل تنظیم شد ✅"
+    elif low.startswith("emoji") or a.startswith("ایموجی"):
+        e = a.split(maxsplit=1)[1].strip() if len(a.split(maxsplit=1)) > 1 else ""
+        CFG["emoji"] = "" if e in ("", "off", "none", "خاموش") else e[:2]
         msg = "ایموجی عوض شد ✅"
     else:
-        return await event.edit(help_text())
+        return await event.edit("نمونه‌ها: <code>.ساعت on</code> · <code>.ساعت فونت 6</code> · "
+                                "<code>.ساعت اسم علی</code> · <code>.ساعت فامیلی رضایی</code>")
     save_settings()
     await refresh()
     await event.edit(msg)
@@ -1077,6 +1103,85 @@ async def c_info(event, arg):
     await event.edit(text, parse_mode="html", link_preview=False)
 
 
+async def c_chatstats(event, arg):
+    try:
+        days = int((arg or "7").strip())
+    except ValueError:
+        days = 7
+    days = max(1, min(days, 30))
+    since = datetime.now().astimezone() - timedelta(days=days)
+    total = media = 0
+    users = {}
+    async for msg in C().iter_messages(event.chat_id, limit=3000):
+        if msg.date and msg.date.astimezone() < since:
+            break
+        total += 1
+        if msg.media:
+            media += 1
+        if msg.sender_id:
+            users[msg.sender_id] = users.get(msg.sender_id, 0) + 1
+    top = sorted(users.items(), key=lambda x: x[1], reverse=True)[:5]
+    lines = [f"📊 آمار {days} روز اخیر", "", f"💬 پیام‌ها: {total}",
+             f"🖼 رسانه‌ها: {media}", f"👥 کاربران فعال: {len(users)}"]
+    if top:
+        lines += ["", "🏆 فعال‌ترین‌ها:"]
+        for uid, count in top:
+            try:
+                ent = await C().get_entity(uid)
+                name = dname(ent)
+            except Exception:
+                name = str(uid)
+            lines.append(f"• {name}: {count} پیام")
+    await event.edit("\n".join(lines))
+
+
+_FONT_MAPS = {}
+def _font_map(style):
+    if style in _FONT_MAPS:
+        return _FONT_MAPS[style]
+    starts = {"1": (0x1D400, 0x1D41A), "2": (0x1D434, 0x1D44E),
+              "3": (0x1D670, 0x1D68A), "4": (0x1D538, 0x1D552),
+              "5": (0x1D5A0, 0x1D5BA), "6": (0x1D5D4, 0x1D5EE),
+              "7": (0x1D608, 0x1D622), "8": (0x1D504, 0x1D51E),
+              "9": (0x1D56C, 0x1D586)}
+    upper, lower = starts[style]
+    table = {}
+    for i, ch in enumerate("ABCDEFGHIJKLMNOPQRSTUVWXYZ"):
+        mapped = chr(upper + i)
+        if unicodedata.category(mapped) != "Cn":
+            table[ord(ch)] = mapped
+    for i, ch in enumerate("abcdefghijklmnopqrstuvwxyz"):
+        mapped = chr(lower + i)
+        if style == "2" and ch == "h":
+            mapped = "ℎ"
+        if unicodedata.category(mapped) != "Cn":
+            table[ord(ch)] = mapped
+    digit_starts = {"1": 0x1D7CE, "3": 0x1D7F6, "4": 0x1D7D8,
+                    "5": 0x1D7E2, "6": 0x1D7EC}
+    if style in digit_starts:
+        ds = digit_starts[style]
+        for i, ch in enumerate("0123456789"):
+            table[ord(ch)] = chr(ds + i)
+    _FONT_MAPS[style] = table
+    return table
+
+
+async def c_fonts(event, arg):
+    parts = (arg or "").split(maxsplit=1)
+    if len(parts) < 2 or parts[0] not in tuple(str(i) for i in range(1, 10)):
+        return await event.edit("استفاده: .فونت شماره متن\n۱=Bold · ۲=Italic · ۳=Mono · ۴=Double · ۵=Sans · ۶=Sans Bold · ۷=Sans Italic · ۸=Fraktur · ۹=Bold Fraktur")
+    result = parts[1].translate(_font_map(parts[0]))
+    await event.edit(result[:4000])
+
+
+async def c_dcinfo(event, arg):
+    session = C().session
+    dc_id = getattr(session, "dc_id", None)
+    address = getattr(session, "server_address", None) or "نامشخص"
+    port = getattr(session, "port", None) or "نامشخص"
+    await event.edit(f"🌐 اطلاعات اتصال تلگرام\n\n🗄 دیتاسنتر: {dc_id or 'نامشخص'}\n🔗 سرور: {address}\n🔌 پورت: {port}")
+
+
 async def c_save(event, arg):
     if not event.is_reply:
         return await event.edit("روی یه پیام ریپلای کن")
@@ -1299,8 +1404,8 @@ async def c_currency(event, arg):
         detail = "\n".join(f"• {x}" for x in e.errors[:6]) or "—"
         return await event.edit(
             "⚠️ نرخ ارز دریافت نشد.\n\n" + detail + "\n\n"
-            "معمولاً یعنی سایت tgju به IP این سرور جواب نمی‌ده. راه‌حل: بعداً دوباره امتحان کن، یا توی متغیرهای سرور "
-            "FX_PROXY بذار (مثلاً http://host:port).\nنرخ بازار: https://www.tgju.org", link_preview=False)
+            "همه‌ی منابع عمومی در دسترس نبودند. بعداً دوباره امتحان کن؛ در صورت نیاز FX_PROXY را تنظیم کن.\n"
+            "منابع: https://nerkhara.com/en/api/ · https://github.com/iran-market/iran-market.github.io", link_preview=False)
     except Exception as e:  # noqa
         log.warning("currency failed: %r", e)
         return await event.edit(f"⚠️ خطا توی گرفتن نرخ: {type(e).__name__}")
@@ -1327,7 +1432,9 @@ async def c_currency(event, arg):
             lines.append(f"\n₿ BTC: ${cg['bitcoin']['usd']:,}\nΞ ETH: ${cg['ethereum']['usd']:,}")
         except Exception:  # noqa
             pass
-    lines.append("\nمنبع: tgju.org" + (" (ذخیره‌شده)" if meta["stale"] else ""))
+    source_labels = {"nerkhara": "NerkhAra", "iran-market": "Iran Market API", "json": "TGJU API", "html": "TGJU", "cache": "حافظه‌ی ذخیره‌شده", "memory": "حافظه‌ی موقت"}
+    lines.append("\nمنبع: " + source_labels.get(meta.get("source"), meta.get("source", "نامشخص")) +
+                 (" (ذخیره‌شده)" if meta["stale"] else ""))
     await event.edit("\n".join(lines))
 
 
@@ -1908,7 +2015,7 @@ HANDLERS = {
     "guard": c_guard, "lock": c_lock, "unlock": c_unlock, "filter": c_filter, "join": c_join,
     "friend": c_friend, "ignore": c_ignore, "secretary": c_secretary, "react": c_react,
     "mute": c_mute, "unmute": c_unmute, "block": c_block, "unblock": c_unblock, "info": c_info,
-    "save": c_save, "download": c_download, "ai": c_ai, "translate": c_translate,
+    "save": c_save, "chatstats": c_chatstats, "fonts": c_fonts, "dcinfo": c_dcinfo, "download": c_download, "ai": c_ai, "translate": c_translate,
     "anim": c_anim, "cheat": c_cheat, "tts": c_tts, "video": c_video, "news": c_news,
     "music": c_music, "currency": c_currency, "logo": c_logo, "action": c_action,
     "online": c_online, "seen": c_seen, "comment": c_comment, "mentionlog": c_mentionlog,

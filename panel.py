@@ -131,7 +131,33 @@ def page_feature(key: str, back_page: int = 1):
     rows = []
     if f["toggle"]:
         rows.append([_b("🔴 خاموش", f"pn:t:{key}:0:f{back_page}", "danger"), _b("🟢 روشن", f"pn:t:{key}:1:f{back_page}", "success")])
+    if key == "clock":
+        import core
+        target = core.CFG.get("target", "last_name")
+        rows.append([_b(("✅ " if target == "bio" else "") + "📝 نمایش داخل بیو", f"pn:ct:bio:{back_page}", "success" if target == "bio" else "primary"),
+                     _b(("✅ " if target != "bio" else "") + "👤 نمایش کنار نام‌خانوادگی", f"pn:ct:name:{back_page}", "success" if target != "bio" else "primary")])
+        rows.append([_b("🎨 فونت ساعت", f"pn:cf:menu:{back_page}", "primary")])
+        rows.append([_b("🧑‍💼 راهنمای تغییر نام و فامیلی", f"pn:cf:help:{back_page}", "primary")])
     rows += nav_back(f"pn:c:{back_page}")
+    return cap, {"inline_keyboard": rows}
+
+
+def page_clock_fonts(back_page: int = 1):
+    """صفحه‌ی جداگانه‌ی انتخاب فونت ساعت."""
+    import core
+    active = str(core.CFG.get("font", "2"))
+    cap = quote("🎨 <b>انتخاب فونت ساعت</b>") + "\nفونت دلخواهت رو انتخاب کن:"
+    rows, row = [], []
+    for n, label in core.CLOCK_FONT_NAMES.items():
+        selected = n == active
+        row.append(_b(("✅ " if selected else "") + f"{n} · {label}",
+                      f"pn:cf:{n}:{back_page}", "success" if selected else "primary"))
+        if len(row) == 2:
+            rows.append(row)
+            row = []
+    if row:
+        rows.append(row)
+    rows += nav_back(f"pn:f:clock:{back_page}")
     return cap, {"inline_keyboard": rows}
 
 
@@ -257,6 +283,8 @@ def render(data: str, ctx: dict = None):
             return page_commands(int(parts[2]) if len(parts) > 2 else 1)
         if k == "f" and len(parts) >= 3:
             return page_feature(parts[2], int(parts[3]) if len(parts) > 3 else 1)
+        if k == "cf" and len(parts) >= 3 and parts[2] == "menu":
+            return page_clock_fonts(int(parts[3]) if len(parts) > 3 else 1)
         simple = {"info": lambda: page_info(ctx), "acct": lambda: page_account(ctx), "ctl": lambda: page_control(ctx),
                   "ping": lambda: page_ping(ctx), "game": lambda: page_game(ctx), "grp": page_group, "bak": page_backup,
                   "fx": lambda: page_fx(ctx)}
