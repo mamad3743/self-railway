@@ -35,6 +35,8 @@ import updater
 import ctl
 import extras
 import miniapp
+import ai_engine
+import ai_memory
 from core import (
     F, CFG, FEATS, FEAT, state, log, TZ, save_settings, digits,
     jalali_short, jalali_long, clock_text, strip_clock, strip_bio, profile_key,
@@ -1255,29 +1257,66 @@ async def c_download(event, arg):
 
 # ───── هوش مصنوعی / ترجمه / اطلاعات ─────
 async def c_ai(event, arg):
-    key = os.getenv("ANTHROPIC_API_KEY")
-    if not key:
-        return await event.edit("🤖 متغیر ANTHROPIC_API_KEY توی Railway تنظیم نشده")
+    """چت چندمدلی؛ کلیدها فقط از متغیرهای محیطی خوانده می‌شوند."""
+    parts = (arg or "").strip().split(maxsplit=1)
+    sub = parts[0].lower() if parts else ""
+    rest = parts[1].strip() if len(parts) > 1 else ""
+    if sub in ("providers", "provider", "model", "status", "help", "راهنما", "وضعیت", "مدل", "سرویس", "حافظه"):
+        if sub == "حافظه":
+            if rest in ("پاک", "clear", "reset"):
+                ai_memory.clear(event.chat_id)
+                return await event.edit("🧠 حافظه‌ی مکالمه‌ی این چت پاک شد.")
+            return await event.edit("🧠 حافظه‌ی این چت فعاله؛ برای پاک‌کردن: .هوش حافظه پاک")
+        if sub in ("providers", "سرویس"):
+            rows = []
+            for name, meta in ai_engine.PROVIDERS.items():
+                rows.append(("🟢 " if name in ai_engine.configured() else "⚪ ") + f"{meta['label']} · {name}")
+            if ai_engine._custom_config():
+                rows.insert(0, "🟢 Custom API · custom")
+            return await event.edit("🧠 سرویس‌های AI\n\n" + "\n".join(rows) +
+                                    "\n\nتنظیم کلیدها در Variables رایلوِی انجام می‌شود.")
+        if sub in ("provider",) and rest:
+            name = ai_engine.normalize_provider(rest)
+            if rest.lower() == "auto":
+                name = "auto"
+            if not name and rest.lower() != "auto":
+                return await event.edit("نام سرویس معتبر نیست. مثال: .هوش provider openai")
+            if name not in ("auto", "custom") and name not in ai_engine.configured():
+                return await event.edit("برای این سرویس API Key تنظیم نشده است.")
+            CFG["ai_provider"] = name
+            save_settings()
+            return await event.edit(f"✅ سرویس پیش‌فرض AI روی {name} تنظیم شد.")
+        if sub in ("model", "مدل") and rest:
+            if len(rest) > 120:
+                return await event.edit("نام مدل بیش از حد طولانی است.")
+            CFG["ai_model"] = rest
+            save_settings()
+            return await event.edit(f"✅ مدل پیش‌فرض روی {rest} تنظیم شد.")
+        if sub in ("status", "وضعیت"):
+            configured = ai_engine.configured()
+            provider = CFG.get("ai_provider", "auto")
+            model = CFG.get("ai_model") or os.getenv("AI_MODEL", "پیش‌فرض سرویس")
+            return await event.edit(f"🧠 AI Center\nسرویس انتخابی: {provider}\nمدل: {model}\nسرویس‌های دارای کلید: {len(configured)}\n" +
+                                    (", ".join(configured) if configured else "هیچ کلیدی تنظیم نشده"))
+        return await event.edit("🧠 راهنمای AI\n.هوش providers\n.هوش provider openai\n.هوش model gpt-4o-mini\n.هوش status\n.هوش حافظه پاک\n.هوش سوالت")
+
     prompt = arg
     if event.is_reply:
         r = await event.get_reply_message()
         prompt = f"{r.raw_text}\n\n{arg}".strip() if r and r.raw_text else arg
     if not prompt:
         return await event.edit("مثال: .هوش فرق HTTP و HTTPS چیه؟")
-    await event.edit("🤖 ...")
-    data = await http_json(
-        "https://api.anthropic.com/v1/messages",
-        headers={"x-api-key": key, "anthropic-version": "2023-06-01"},
-        body={
-            "model": os.getenv("AI_MODEL", "claude-haiku-4-5-20251001"),
-            "max_tokens": 900,
-            "system": "کوتاه و مفید جواب بده و به زبان خود کاربر پاسخ بده.",
-            "messages": [{"role": "user", "content": prompt}],
-        },
-        timeout=60,
-    )
-    text = "".join(b.get("text", "") for b in data.get("content", []))
-    await event.edit(("🤖 " + text)[:4000], parse_mode=None)
+    await event.edit("🧠 در حال فکر کردن…")
+    try:
+        history = ai_memory.history(event.chat_id)
+        answer, provider, model = await ai_engine.ask(
+            CFG.get("ai_provider", "auto"), CFG.get("ai_model") or None, prompt,
+            system=CFG.get("ai_system") or None, history=history)
+        ai_memory.remember(event.chat_id, prompt, answer)
+    except TypeError:
+        # سازگاری با نسخه‌های قدیمی موتور چندمدلی
+        answer, provider, model = await ai_engine.ask(CFG.get("ai_provider", "auto"), CFG.get("ai_model") or None, prompt)
+    await event.edit((f"🧠 {answer}\n\n— {provider} · {model}")[:4000], parse_mode=None)
 
 
 LANGS = {"fa", "en", "ar", "tr", "de", "fr", "es", "ru", "it", "zh", "ja", "ko", "hi", "ur"}

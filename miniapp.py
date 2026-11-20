@@ -227,7 +227,7 @@ a.dom{color:var(--o2);font-size:12px;text-decoration:none;direction:ltr;unicode-
 <span class="live off" id="melive"><i></i><b id="melivetx">…</b></span></div>
 <div class="stat" id="chips"></div><div id="domrow" style="margin-top:8px"></div></div>
 <div class="tabs">
-<button data-t="home" class="on">🏠 خانه</button><button data-t="feats">🎛 قابلیت‌ها</button><button data-t="game">🐱 بازی</button><button data-t="bak">💾 بکاپ</button>
+<button data-t="home" class="on">🏠 خانه</button><button data-t="ai">🧠 AI Center</button><button data-t="feats">🎛 قابلیت‌ها</button><button data-t="game">🐱 بازی</button><button data-t="bak">💾 بکاپ</button>
 </div>
 <div id="toast"></div>
 <div id="t-home">
@@ -239,6 +239,21 @@ a.dom{color:var(--o2);font-size:12px;text-decoration:none;direction:ltr;unicode-
 <input id="q-text" placeholder="مثلاً .میویی یا .وضعیت چت">
 <button id="b-send" class="on">ارسال به سلف 🚀</button><div id="q-msg" style="margin-top:6px"></div>
 <small>دستورهای بازی (.میویی .ماهیگیری .یخچال .پیشی .خفاش .نجات) رو توی چت بازی بفرست. me = سیو مسج.</small></div>
+</div>
+<div id="t-ai" class="hidden">
+<div class="card" style="background:radial-gradient(400px 180px at 90% 0%,rgba(145,85,255,.22),transparent 70%),linear-gradient(145deg,#171326,#101014);border-color:#45306a">
+<h3>🧠 AI Command Center <span class="pill" id="ai-pill">در حال بررسی</span></h3>
+<div class="stat" id="ai-stats"><span class="chip">چندمدلی</span><span class="chip">کلیدهای امن از Railway Variables</span></div>
+<small>کلیدهای API هرگز در مینی‌اپ نمایش داده یا داخل تنظیمات ذخیره نمی‌شوند؛ فقط وضعیت وجود کلید نمایش داده می‌شود.</small>
+</div>
+<div class="card"><h3>🔌 ارائه‌دهنده و مدل</h3>
+<select id="ai-provider"><option value="auto">Auto · انتخاب خودکار</option><option value="openai">OpenAI</option><option value="anthropic">Claude</option><option value="gemini">Google Gemini</option><option value="deepseek">DeepSeek</option><option value="groq">Groq</option><option value="openrouter">OpenRouter</option><option value="mistral">Mistral</option><option value="xai">xAI</option><option value="together">Together AI</option><option value="fireworks">Fireworks</option><option value="cerebras">Cerebras</option><option value="perplexity">Perplexity</option><option value="sambanova">SambaNova</option><option value="nvidia">NVIDIA NIM</option><option value="custom">Custom OpenAI-compatible</option></select>
+<input id="ai-model" dir="ltr" placeholder="نام مدل؛ خالی = مدل پیش‌فرض سرویس">
+<button class="on" id="ai-save">ذخیره تنظیمات AI ✨</button><div id="ai-config-msg" style="margin-top:7px"></div>
+<small>برای Custom، متغیرهای AI_BASE_URL و AI_API_KEY و AI_CUSTOM_MODEL را در Railway تنظیم کن.</small>
+</div>
+<div class="card"><h3>🧪 اتصال و سرویس‌های فعال</h3><div id="ai-providers" class="grid"></div><button id="ai-refresh" class="ghost" style="margin-top:8px">↻ بررسی دوباره سرویس‌ها</button></div>
+<div class="card"><h3>💬 آزمایش هوش مصنوعی</h3><textarea id="ai-prompt" rows="4" placeholder="هر چیزی می‌خوای بپرس…"></textarea><button id="ai-ask" class="on">ارسال به هوش مصنوعی 🚀</button><div id="ai-answer" style="white-space:pre-wrap;overflow-wrap:anywhere;margin-top:12px;line-height:2"></div></div>
 </div>
 <div id="t-feats" class="hidden"><div class="card"><h3>🎛 قابلیت‌ها <span class="pill" id="oncount"></span></h3><div class="grid" id="feats" style="margin-top:8px"></div>
 <small>سبز = روشن. روی هر قابلیت بزن روشن/خاموش می‌شه و بلافاصله به سلف ارسال می‌شه. برای راهنمای کامل روی بات /panel بزن.</small></div></div>
@@ -308,7 +323,7 @@ const box=$("feats");box.innerHTML="";(d.feats||[]).forEach(function(f){const el
 async function load(btn){if(btn)busy(btn,true);try{const d=await api("/api/me");if(!d.connected){$("meava").textContent="🔌";$("mename").textContent="اکانت وصل نیست";$("meuser").textContent="";$("sub").textContent="🔌 "+(d.hint||"")+" · "+(d.sub||"");$("status").innerHTML="🔌 اکانت وصل نیست. توی بات /connect بزن."+(d.login_url?'<div style="margin-top:10px"><button id="weblogin">🌐 ورود از صفحه‌ی وب (شماره و کد)</button></div>':"");$("chips").innerHTML="";if(d.login_url){$("weblogin").onclick=function(){try{tg.openLink(d.login_url);}catch(e){window.open(d.login_url,"_blank");}};}return;}
 render(d);}catch(e){$("sub").textContent="❌ "+e.message;toast(e.message,true);}if(btn)busy(btn,false);}
 function buildGames(){const g=$("games");if(g.children.length)return;GAMES.forEach(function(gm){const t=gm[0],c=gm[1];const b=document.createElement("button");b.textContent=t;b.onclick=function(){return (async function(){busy(b,true);try{const chat=$("g-chat").value.trim()||"me";await api("/api/cmd",{target:chat,text:c});$("g-msg").innerHTML="<span class='ok'>✅ فرستاده شد به "+esc(chat)+"</span>";try{tg?.HapticFeedback?.impactOccurred?.("medium");}catch(e){}}catch(e){$("g-msg").innerHTML="<span class='err'>❌ "+esc(e.message)+"</span>";}busy(b,false);})();};g.appendChild(b);});}
-document.querySelectorAll(".tabs button").forEach(function(b){b.onclick=function(){document.querySelectorAll(".tabs button").forEach(function(x){x.classList.remove("on");});b.classList.add("on");["home","feats","game","bak"].forEach(function(t){$("t-"+t).classList.toggle("hidden",t!==b.dataset.t);});if(b.dataset.t==="game")buildGames();try{tg?.HapticFeedback?.impactOccurred?.("light");}catch(e){}};});
+document.querySelectorAll(".tabs button").forEach(function(b){b.onclick=function(){document.querySelectorAll(".tabs button").forEach(function(x){x.classList.remove("on");});b.classList.add("on");["home","ai","feats","game","bak"].forEach(function(t){$("t-"+t).classList.toggle("hidden",t!==b.dataset.t);});if(b.dataset.t==="game")buildGames();if(b.dataset.t==="ai")loadAI();try{tg?.HapticFeedback?.impactOccurred?.("light");}catch(e){}};});
 $("b-run").onclick=function(e){return (async function(){const b=e.target.closest("button");busy(b,true);try{const d=await api("/api/control",{action:"run"});toast(d.msg||"🟢 داره روشن می‌شه");render(d);}catch(e){toast(e.message,true);}busy(b,false);})();};
 $("b-stop").onclick=function(e){return (async function(){const b=e.target.closest("button");busy(b,true);try{const d=await api("/api/control",{action:"stop"});toast(d.msg||"🔴 خاموش شد");render(d);}catch(e){toast(e.message,true);}busy(b,false);})();};
 $("b-restart").onclick=function(e){return (async function(){const b=e.target.closest("button");busy(b,true,"ریستارت…");try{const d=await api("/api/control",{action:"restart"});toast(d.msg||"🔄 داره ریستارت می‌شه");render(d);}catch(e){toast(e.message,true);}busy(b,false);})();};
@@ -317,5 +332,11 @@ $("b-send").onclick=function(){return (async function(){const b=$("b-send");busy
 $("b-dl").onclick=function(){return (async function(){const b=$("b-dl");busy(b,true);try{const d=await api("/api/backup");const blob=new Blob([JSON.stringify(d.backup,null,1)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="self-backup.json";document.body.appendChild(a);a.click();a.remove();toast("⬇️ بکاپ دانلود شد");}catch(e){toast(e.message,true);}busy(b,false);})();};
 $("b-last").onclick=function(){return (async function(){const b=$("b-last");busy(b,true);try{const d=await api("/api/restore_last");$("b-msg").innerHTML="<span class='ok'>"+esc(d.msg)+"</span>";toast("♻️ برگردونده شد");render(d);}catch(e){$("b-msg").innerHTML="<span class='err'>❌ "+esc(e.message)+"</span>";}busy(b,false);})();};
 $("b-up").onclick=function(){return (async function(){const b=$("b-up");busy(b,true);try{let obj;try{obj=JSON.parse($("b-json").value);}catch(e){throw new Error("متن JSON معتبر نیست");}const d=await api("/api/restore",{backup:obj});$("b-msg").innerHTML="<span class='ok'>"+esc(d.msg)+"</span>";toast("♻️ بازیابی شد");render(d);}catch(e){$("b-msg").innerHTML="<span class='err'>❌ "+esc(e.message)+"</span>";}busy(b,false);})();};
+
+async function loadAI(){try{const d=await api("/api/ai",{action:"status"});$("ai-provider").value=d.provider||"auto";$("ai-model").value=d.model||"";$("ai-pill").textContent=d.configured.length+" سرویس فعال";const box=$("ai-providers");box.innerHTML="";(d.providers||[]).forEach(function(p){const el=document.createElement("div");el.className="f"+(p.ready?" on":"");el.innerHTML="<span class='dot'></span><span>"+esc(p.label)+"</span><b>"+(p.ready?"متصل":"بدون کلید")+"</b>";box.appendChild(el);});}catch(e){$("ai-pill").textContent="خطا";toast(e.message,true);}}
+$("ai-refresh").onclick=loadAI;
+$("ai-save").onclick=async function(){const b=this;busy(b,true,"ذخیره…");try{const d=await api("/api/ai",{action:"configure",provider:$("ai-provider").value,model:$("ai-model").value.trim()});$("ai-config-msg").innerHTML="<span class='ok'>"+esc(d.msg)+"</span>";toast("تنظیمات AI ذخیره شد");}catch(e){$("ai-config-msg").innerHTML="<span class='err'>"+esc(e.message)+"</span>";}busy(b,false);};
+$("ai-clear").onclick=async function(){try{const d=await api("/api/ai",{action:"memory_clear"});$("ai-answer").textContent="";toast(d.msg||"حافظه پاک شد");}catch(e){toast(e.message,true);}};
+$("ai-ask").onclick=async function(){const b=this;const prompt=$("ai-prompt").value.trim();if(!prompt){toast("اول سوالت رو بنویس",true);return;}busy(b,true,"در حال دریافت پاسخ…");$("ai-answer").textContent="";try{const d=await api("/api/ai",{action:"ask",prompt:prompt});$("ai-answer").textContent=d.answer+"\n\n— "+d.provider+" · "+d.model;}catch(e){$("ai-answer").textContent="خطا: "+e.message;}busy(b,false);};
 buildGames();load();
 </script></body></html>"""

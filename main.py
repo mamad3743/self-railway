@@ -629,6 +629,57 @@ def mini_sanitized():
     return {"features": {k: bool(v) for k, v in F.items()}, "cfg": cfg}
 
 
+async def mini_api_ai(request):
+    body = await mini_body(request)
+    if body is None:
+        return mini_need_auth()
+    import ai_engine
+    action = str(body.get("action", "status")).lower()
+    if action == "status":
+        configured = ai_engine.configured()
+        providers = [{"id": key, "label": meta["label"], "ready": key in configured}
+                     for key, meta in ai_engine.PROVIDERS.items()]
+        custom = bool(ai_engine._custom_config())
+        providers.append({"id": "custom", "label": "Custom API", "ready": custom})
+        return web.json_response({"ok": True, "providers": providers,
+                                  "configured": configured + (["custom"] if custom else []),
+                                  "provider": CFG.get("ai_provider", "auto"),
+                                  "model": CFG.get("ai_model", "")})
+    if action == "configure":
+        provider = str(body.get("provider", "auto")).lower().strip()
+        if provider not in ("auto", "custom") and provider not in ai_engine.PROVIDERS:
+            return web.json_response({"ok": False, "error": "ارائه‌دهنده معتبر نیست"}, status=400)
+        if provider not in ("auto", "custom") and provider not in ai_engine.configured():
+            return web.json_response({"ok": False, "error": "برای این سرویس API Key در Railway تنظیم نشده"}, status=400)
+        if provider == "custom" and not ai_engine._custom_config():
+            return web.json_response({"ok": False, "error": "AI_BASE_URL و AI_API_KEY را در Railway تنظیم کن"}, status=400)
+        model = str(body.get("model", "")).strip()[:120]
+        CFG["ai_provider"] = provider
+        CFG["ai_model"] = model
+        save_settings()
+        return web.json_response({"ok": True, "msg": "تنظیمات ذخیره شد"})
+    if action == "memory_clear":
+        import ai_memory
+        ai_memory.clear("miniapp:" + str(state.get("me") or "owner"))
+        return web.json_response({"ok": True, "msg": "حافظه‌ی مینی‌اپ پاک شد"})
+    if action == "ask":
+        import ai_memory
+        prompt = str(body.get("prompt", "")).strip()
+        if not prompt or len(prompt) > 8000:
+            return web.json_response({"ok": False, "error": "متن باید بین ۱ تا ۸۰۰۰ کاراکتر باشد"}, status=400)
+        try:
+            memory_key = "miniapp:" + str(state.get("me") or "owner")
+            history = ai_memory.history(memory_key)
+            answer, provider, model = await ai_engine.ask(
+                CFG.get("ai_provider", "auto"), CFG.get("ai_model") or None, prompt,
+                system=CFG.get("ai_system") or None, history=history)
+            ai_memory.remember(memory_key, prompt, answer)
+            return web.json_response({"ok": True, "answer": answer[:12000], "provider": provider, "model": model})
+        except Exception as exc:
+            return web.json_response({"ok": False, "error": str(exc)[:400]}, status=502)
+    return web.json_response({"ok": False, "error": "عملیات نامعتبر"}, status=400)
+
+
 async def mini_api_backup(request):
     if await mini_body(request) is None:
         return mini_need_auth()
@@ -715,6 +766,7 @@ def main():
         web.post("/api/toggle", mini_api_toggle),
         web.post("/api/control", mini_api_control),
         web.post("/api/cmd", mini_api_cmd),
+        web.post("/api/ai", mini_api_ai),
         web.post("/api/backup", mini_api_backup),
         web.post("/api/restore", mini_api_restore),
     ])

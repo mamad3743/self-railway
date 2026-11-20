@@ -9,7 +9,7 @@
 1. ریپوی خصوصی GitHub ← Railway ← Deploy from GitHub.
 2. Variables:
    - `PANEL_PASSWORD` ← رمز قوی برای پنل وب (لازم)
-   - `ANTHROPIC_API_KEY` ← فقط برای قابلیت «هوش مصنوعی» (اختیاری)
+   - کلیدهای AI اختیاری: `OPENAI_API_KEY`، `ANTHROPIC_API_KEY`، `GEMINI_API_KEY`، `DEEPSEEK_API_KEY`، `GROQ_API_KEY`، `OPENROUTER_API_KEY` و سایر ارائه‌دهنده‌ها؛ کلیدها فقط در Railway Variables
    - `PANEL_TTL` ← مدت نمایش پنل توی چت به ثانیه (اختیاری)
    - `API_ID` / `API_HASH` ← اختیاری؛ اگه نذاری پنل وب ازت می‌پرسه
    - `TIMEZONE` (پیش‌فرض `Asia/Tehran`)، `NEWS_RSS`، `AI_MODEL` (اختیاری)
@@ -143,3 +143,12 @@
 - نیازها: inline mode توی BotFather (`/setinline`)؛ یه بار به بات `/start` بزن (بنر یه بار آپلود و `file_id`اش ذخیره می‌شه). اگه نشد و دامنه‌ی عمومی داری، بنر از `/banner.jpg` سرو می‌شه.
 - بنر: `assets/banner.jpg`؛ با `python3 tools/make_banner.py` دوباره بساز (اسم و تگ‌لاین بالای فایل). `/classic` توی بات پنل قدیمی رو باز می‌کنه.
 "# self-railway" 
+
+
+## مرکز هوش مصنوعی چندمدلی (AI Center)
+- مینی‌اپ: تب «🧠 AI Center» برای مشاهده سرویس‌های دارای کلید، انتخاب ارائه‌دهنده و مدل، و آزمایش چت.
+- کلیدها فقط از متغیرهای محیطی Railway خوانده می‌شوند و در UI یا فایل تنظیمات نمایش/ذخیره نمی‌شوند.
+- متغیرهای استاندارد: `OPENAI_API_KEY`، `ANTHROPIC_API_KEY`، `GEMINI_API_KEY`، `DEEPSEEK_API_KEY`، `GROQ_API_KEY`، `OPENROUTER_API_KEY`، `MISTRAL_API_KEY`، `XAI_API_KEY`، `TOGETHER_API_KEY`، `FIREWORKS_API_KEY`، `CEREBRAS_API_KEY`، `PERPLEXITY_API_KEY`، `SAMBANOVA_API_KEY`، `NVIDIA_API_KEY`.
+- API سازگار با OpenAI: `AI_BASE_URL`، `AI_API_KEY`، `AI_CUSTOM_MODEL`.
+- دستورات تلگرام: `.هوش providers`، `.هوش provider openai`، `.هوش model gpt-4o-mini`، `.هوش status`، `.هوش سوال شما`.
+- انتخاب ارائه‌دهنده و مدل در `settings.json` ذخیره می‌شود؛ کلید API ذخیره نمی‌شود.

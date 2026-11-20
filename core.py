@@ -98,7 +98,7 @@ _RAW = [
     ("autoseen", "👀", "سین خودکار", True,
      "پیام‌های پی‌وی خودکار خونده (seen) می‌شن.", [".سین on", ".سین off"]),
     ("ai", "🤖", "هوش مصنوعی", False,
-     "سوال از Claude. نیاز به متغیر ANTHROPIC_API_KEY توی Railway داره.",
+     "چت چندمدلی با OpenAI، Claude، Gemini و APIهای سازگار؛ کلیدها از Railway Variables خوانده می‌شن.",
      [".هوش فرق HTTP و HTTPS چیه؟", ".هوش (روی ریپلای)"]),
     ("translate", "🌐", "ترجمه", False,
      "ترجمه‌ی متن یا پیام ریپلای‌شده. بدون زبان: فارسی↔انگلیسی خودکار.",
@@ -299,6 +299,9 @@ CFG = {
     "report_last": "",
     "meow": {},  # تنظیمات بازی میویی: automeow/autofish/autofridge/bat/show/aliases (meow.py)
     "proxy": os.getenv("PROXY", ""),  # socks5://... | http://... | tg://proxy?... (بعد از ریستارت)
+    "ai_provider": os.getenv("AI_PROVIDER", "auto"),
+    "ai_model": os.getenv("AI_MODEL", ""),
+    "ai_system": "پاسخ دقیق، مفید و به زبان کاربر بده. اگر مطمئن نیستی صادقانه بگو.",
 }
 START_TIME = time.time()
 state = {
