@@ -9,6 +9,8 @@ if __name__ == "__main__" and os.environ.get("HUB_BOT_TOKEN"):
 import hmac
 import base64
 import html
+import io
+import json
 import time
 import asyncio
 
@@ -160,7 +162,7 @@ def stepper(n: int) -> str:
 
 
 def infer_step(body: str) -> int:
-    for marker, n in (('action="/panel"', 1), ('action="/api"', 2), ('action="/phone"', 3), ('action="/code"', 4),
+    for marker, n in (('action="/panel"', 1), ('action="/api"', 2), ('action="/phone"', 3), ('action="/code"', 4), ('id="qrbox"', 4),
                       ('action="/2fa"', 4), ('action="/settings"', 6)):
         if marker in body:
             return n
@@ -192,17 +194,30 @@ F_API = """<h2>⚙️ اطلاعات API</h2><form method="post" action="/api">
 
 F_PHONE = """<h2>📱 ورود به تلگرام</h2><form method="post" action="/phone">
 <input name="phone" placeholder="+989123456789" dir="ltr" inputmode="tel" required autofocus>
-<button>ارسال کد</button></form><small>شماره با کد کشور (+98...) یا مثل 0912...؛ کد برات فرستاده می‌شه.</small>"""
+<button>ارسال کد</button></form><form method="post" action="/qr"><button class="ghost">🔳 ورود با QR (بدون کد)</button></form><small>شماره با کد کشور (+98...) یا مثل 0912...؛ کد برات فرستاده می‌شه.</small>"""
 
 F_CODE = """<h2>💬 کد تایید</h2><form method="post" action="/code">
 <input name="code" placeholder="کد ۵ رقمی" dir="ltr" inputmode="numeric" required autofocus>
 <button>تایید</button></form>
-<form method="post" action="/resend"><button class="ghost">🔁 ارسال دوباره / روش بعدی</button></form>
+<form method="post" action="/resend"><button class="ghost">🔁 ارسال دوباره / روش بعدی</button></form><form method="post" action="/qr"><button class="ghost">🔳 ورود با QR (بدون کد)</button></form>
 <small>کد رو با فاصله یا خط تیره بنویس (مثلاً 1-2-3-4-5)؛ پشت‌سرهم نوشتنش باعث باطل شدن کد می‌شه.</small>"""
 
 F_2FA = """<h2>🔑 رمز دو مرحله‌ای</h2><form method="post" action="/2fa">
 <input type="password" name="password" placeholder="رمز تایید دو مرحله‌ای" required autofocus>
 <button>ورود</button></form>"""
+
+F_QR = """<h2>🔳 ورود با QR</h2>
+<div id="qrbox" style="text-align:center"><img id="qrimg" src="/qr.png?v=0" alt="QR" style="width:260px;max-width:100%;background:#fff;padding:10px;border-radius:14px;margin:0 auto 12px;display:block"></div>
+<p id="qrmsg" style="text-align:center">⏳ منتظر اسکن...</p>
+<small>توی یه دستگاه دیگه‌ی همین اکانت (که الان وارده): تلگرام ← Settings ← Devices ← <b>Link Desktop Device</b> ← این QR رو اسکن کن. هر ۳۰ ثانیه خودکار نو می‌شه.</small>
+<form method="post" action="/qr/cancel"><button class="ghost">↩️ بازگشت به ورود با شماره</button></form>
+<script>(function(){var v=0,img=document.getElementById("qrimg"),m=document.getElementById("qrmsg");
+function tick(){fetch("/qr/status",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
+if(d.status==="ok"||d.status==="2fa"){location.href="/";return}
+if(d.status==="expired"||d.status==="error"||d.status==="idle"){m.textContent=d.err||"QR منقضی شد؛ برگرد و دوباره امتحان کن.";return}
+if(d.ver!==v){v=d.ver;img.src="/qr.png?v="+v}
+setTimeout(tick,2000)}).catch(function(){setTimeout(tick,3000)})}
+tick()})();</script>"""
 
 
 def opts(pairs, cur):
@@ -266,7 +281,7 @@ async def index(request):
         return page(F_CODE, state.get("notice", ""), True)
     if state["step"] == "phone" and core.api_hint():
         return page(F_PHONE + f"<small>{html.escape(core.api_hint())}</small>")
-    return page({"phone": F_PHONE, "code": F_CODE, "2fa": F_2FA}[state["step"]])
+    return page({"phone": F_PHONE, "code": F_CODE, "2fa": F_2FA, "qr": F_QR}[state["step"]])
 
 
 async def panel_login(request):
@@ -369,6 +384,93 @@ async def send_code(request):
     except Exception as e:  # noqa
         return page(F_CODE, f"خطا: {e}")
     await finish_login()
+    raise web.HTTPFound("/")
+
+
+# ───────────── ورود با QR (بدون کد) ─────────────
+QR = {"obj": None, "task": None, "status": "idle", "ver": 0, "err": ""}
+
+
+def make_qr_png(url: str) -> bytes:
+    import qrcode
+    q = qrcode.QRCode(box_size=8, border=3)
+    q.add_data(url)
+    q.make(fit=True)
+    buf = io.BytesIO()
+    q.make_image(fill_color="black", back_color="white").save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def qr_stop():
+    t = QR.get("task")
+    if t and not t.done():
+        t.cancel()
+    QR.update(task=None, obj=None, status="idle", err="")
+
+
+async def qr_runner(qr):
+    try:
+        for _ in range(8):  # حدود ۴ دقیقه
+            try:
+                await qr.wait(30)
+            except asyncio.TimeoutError:
+                await qr.recreate()
+                QR["ver"] += 1
+                continue
+            except SessionPasswordNeededError:
+                QR["status"] = "2fa"
+                state["step"] = "2fa"
+                return
+            QR["status"] = "ok"
+            await finish_login()
+            return
+        QR["status"] = "expired"
+        state["step"] = "phone"
+    except asyncio.CancelledError:
+        raise
+    except Exception as e:  # noqa
+        log.warning("qr login failed: %r", e)
+        QR.update(status="error", err=f"ورود با QR انجام نشد: {type(e).__name__}: {e}")
+        state["step"] = "phone"
+
+
+@need_auth
+async def qr_start(request):
+    qr_stop()
+    try:
+        make_qr_png("tg://login?token=x")
+    except ImportError:
+        return page(F_PHONE, "ورود با QR فعال نیست (کتابخونه‌ی qrcode نصب نیست)؛ با شماره وارد شو.")
+    try:
+        qr = await core.client.qr_login()
+    except Exception as e:  # noqa
+        log.warning("qr_login failed: %r", e)
+        return page(F_PHONE, f"خطا در QR: {type(e).__name__}: {e}")
+    QR.update(obj=qr, status="wait", ver=0, err="")
+    QR["task"] = asyncio.create_task(qr_runner(qr))
+    state["step"] = "qr"
+    raise web.HTTPFound("/")
+
+
+@need_auth
+async def qr_image(request):
+    qr = QR.get("obj")
+    if qr is None:
+        raise web.HTTPNotFound()
+    return web.Response(body=make_qr_png(qr.url), content_type="image/png",
+                        headers={"Cache-Control": "no-store"})
+
+
+@need_auth
+async def qr_status(request):
+    return web.json_response({"status": QR["status"], "ver": QR["ver"], "err": QR["err"]},
+                             headers={"Cache-Control": "no-store"})
+
+
+@need_auth
+async def qr_cancel(request):
+    qr_stop()
+    state["step"] = "phone"
     raise web.HTTPFound("/")
 
 
@@ -756,6 +858,10 @@ def main():
         web.post("/phone", send_phone),
         web.post("/code", send_code),
         web.post("/resend", resend),
+        web.post("/qr", qr_start),
+        web.get("/qr.png", qr_image),
+        web.get("/qr/status", qr_status),
+        web.post("/qr/cancel", qr_cancel),
         web.post("/2fa", send_2fa),
         web.post("/settings", settings),
         web.post("/logout", logout),
