@@ -1,154 +1,163 @@
-# سلف تلگرام (Telethon) — ۵۶ قابلیت + پنل دکمه‌ای رنگی
+<div align="center">
 
-## فایل‌ها
-`main.py` (پنل وب و راه‌اندازی) · `core.py` (تنظیمات و لیست قابلیت‌ها) · `features.py` (دستورها) · `meow.py` (قابلیت‌های MeowAce) · `boot.py` + `updater.py` (بروزرسانی با فایل) · `hub.py` + `ctl.py` (حالت هاب چندکاربره) · `extras.py` (آمار، هشدار، گزارش، خاموشی) ·
-`botpanel.py` (پنل دکمه‌ای) · `fonts/` (فونت لوگو) · `requirements.txt` · `Procfile`
-همه باید توی ریشه‌ی ریپو باشن.
+<img src="assets/banner.jpg" width="100%" alt="Railway Self banner">
 
-## دیپلوی روی Railway
-1. ریپوی خصوصی GitHub ← Railway ← Deploy from GitHub.
-2. Variables:
-   - `PANEL_PASSWORD` ← رمز قوی برای پنل وب (لازم)
-   - کلیدهای AI اختیاری: `OPENAI_API_KEY`، `ANTHROPIC_API_KEY`، `GEMINI_API_KEY`، `DEEPSEEK_API_KEY`، `GROQ_API_KEY`، `OPENROUTER_API_KEY` و سایر ارائه‌دهنده‌ها؛ کلیدها فقط در Railway Variables
-   - `PANEL_TTL` ← مدت نمایش پنل توی چت به ثانیه (اختیاری)
-   - `API_ID` / `API_HASH` ← اختیاری؛ اگه نذاری پنل وب ازت می‌پرسه
-   - `TIMEZONE` (پیش‌فرض `Asia/Tehran`)، `NEWS_RSS`، `AI_MODEL` (اختیاری)
-3. یه **Volume** با Mount Path برابر `/data` بساز.
-4. Settings ← Networking ← Generate Domain.
+# ⚡ Railway Self
 
-## ورود
-دامنه رو باز کن ← رمز پنل ← API ID/Hash ← شماره ← کد (← رمز دو مرحله‌ای).
+### Your Telegram. Your controls. One powerful self-userbot.
 
-## پنل دکمه‌ای رنگی (توی هر چتی)
-1. توی @BotFather یه بات بساز و توکنش رو توی پنل وب (بخش پایین) بذار.
-2. **مهم:** توی BotFather دستور `/setinline` رو بزن، بات رو انتخاب کن و یه متن (مثلاً `panel`) بنویس تا حالت اینلاین روشن بشه.
-3. از اکانت خودت توی **هر چتی** (پی‌وی، گروه، Saved) بنویس `.پنل` ← پنل همون‌جا میاد.
-4. اگه کسی غیر از خودت روی دکمه‌ها بزنه، فقط پیام «این پنل برای شما نیست 🚫» می‌گیره و هیچ تغییری اعمال نمی‌شه.
-5. پنل بعد از `PANEL_TTL` ثانیه (پیش‌فرض ۳۰۰؛ `0` یعنی هیچ‌وقت) خودکار پاک می‌شه و دکمه‌ی «❌ بستن» هم داره.
-6. رنگ دکمه‌ها (فیلد `style`): 🟢 سبز = روشن، 🔴 قرمز = خاموش، 🔵 آبی = دستوری
-   (فقط توی نسخه‌های تلگرام بعد از ۹ فوریه ۲۰۲۶ دیده می‌شه).
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=19&pause=1000&color=7C3AED&center=true&vCenter=true&width=650&lines=Powerful+Telegram+automation;Modern+web+dashboard;Colorful+inline+control+panel;Multi-user+hub+%26+AI+Center" alt="Animated typing intro">
 
-اگه اینلاین روشن نباشه، `.پنل` پنل رو توی چت خصوصی خودت با بات می‌فرسته (اول بات رو Start کن).
-بدون بات هم کار می‌کنه: `.پنل متن` یه پنل متنی نشون می‌ده.
+<br>
 
-## حالت Quote برای پیام‌ها
-`.فرمت quote` ← پیام‌های متنی ارسالی‌ات به شکل نقل‌قول (Quote) تلگرام نمایش داده می‌شن؛ `.فرمت off` برای خاموش کردن.
+![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Railway](https://img.shields.io/badge/Deploy-Railway-8B5CF6?style=for-the-badge&logo=railway&logoColor=white)
+![Telegram](https://img.shields.io/badge/Platform-Telegram-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)
+![License](https://img.shields.io/badge/License-Private-lightgrey?style=for-the-badge)
 
-## گزینه‌های پنل
-با `.پنل تنظیمات` همه رو یکجا می‌بینی:
-- `.پنل زمان 120` ← پنل بعد از ۱۲۰ ثانیه از چت پاک بشه (`0` = هیچ‌وقت)
-- `.پنل اینجا` ← این چت رو به لیست چت‌های مجاز اضافه/حذف کن
-- `.پنل محدود on` ← پنل فقط توی Saved Messages و چت‌های مجاز نمایش داده بشه (جای دیگه فقط توی چت خصوصی بات میاد)
-- `.پنل رنگ classic | mono | plain` ← سبز/قرمز/آبی، همه آبی، یا بدون رنگ
+</div>
 
-## ساعت سکوت
-`.آفلاین ساعت 23:00-07:00` ← توی این بازه خودکار آفلاین هستی (حتی بدون روشن کردن آفلاین)؛ `.آفلاین ساعت off` خاموشش می‌کنه.
+---
 
-## کارهای زمان‌بندی‌شده (برای بازی‌های بات‌ها)
-توی چت بات (مثلاً @MeowieQBot) بنویس:
-- `.خودکار افزودن 30m /feed` ← هر ۳۰ دقیقه یه دستور بفرست
-- `.خودکار کلیک 10m ماهیگیری` ← هر ۱۰ دقیقه روی دکمه‌ای که متنش «ماهیگیری» داره کلیک کن
-- `.خودکار هوشمند 5m میو` ← زمان انتظار («۲ دقیقه و ۳۰ ثانیه») رو از جواب بات می‌خونه و نوبت بعدی رو همون موقع اجرا می‌کنه
-- `.نجات on` ← وقتی بات پیامی با دکمه‌ی «نجات» می‌فرسته خودکار کلیک می‌کنه (`.نجات کلمه X` | `.نجات تاخیر 1.5` | `.نجات off`)
-- `.خودکار لیست | توقف N | شروع N | اجرا N | حذف N | پاک`
-حداقل فاصله ۱ دقیقه و حداکثر ۱۰ کار؛ ۵ خطای پشت‌سرهم یه کار رو متوقف می‌کنه و توی Saved خبر می‌ده.
+## ✨ What is Railway Self?
 
-## بازی میویی (از MeowAce)
-هر بازی **یه دستور** داره که توی همون چت روشن/خاموش می‌کنه (بدون آرگومان). کلید کلی هر کدوم توی `.پنل` هم هست.
-- `.میویی` ← میو خودکار. زمان انتظار رو از جواب بات می‌خونه و **دقیق همون موقع خودش می‌فرسته** (زمان‌بندی روی سرور تلگرام نداره).
-- `.ماهیگیری` ← ماهیگیری؛ زمان تصادفی بات رو می‌خونه. عملکرد: `.ماهیگیری پیشی` (پیش‌فرض) · `فروش` · `یخچال`.
-- `.یخچال` ← پخت ماهی‌های خام و فروش (`.یخچال پیشی` برای غذا دادن).
-- `.خفاش` ← شکار خفاش؛ `.خفاش تاخیر 2` · `.خفاش لیست` · دستی: ریپلای + `batt`.
-- `.نجات` ← نجات خودکار؛ `.نجات تاخیر 1.5` · `.نجات تعداد 2` · `.نجات کلمه نجات`.
-- `.بازی` یا `.وضعیت چت` ← وضعیت همه‌ی بازی‌های این چت · `.بازی روشن` همه‌ی بازی‌ها رو یکجا روشن می‌کنه، `.بازی خاموش` همه رو خاموش.
-- `.گزارش` ← آمار امروز و دیروز (میو، ماهیگیری، یخچال، برداشت پیشی و میو پوینت، خفاش، نجات، ارتقا)؛ `.گزارش روشن` هر روز بعد از نیمه‌شب خلاصه‌ی دیروز رو می‌فرسته.
-- `.خاموشی 2-8` ← ساعت خاموشی: توی این بازه همه‌ی خودکارها می‌خوابن و صبح ادامه می‌دن (`.خاموشی` روشن/خاموش).
-- **هشدار هوشمند** (پیش‌فرض روشن): بات جواب نده، متنش قابل فهم نباشه، FloodWait بگیری یا برداشت پیشی کار نکنه، خودش خبر می‌ده.
-- **ارتقای خودکار مقام** (کلید پنل): وقتی موجودی میو پوینت (از پیام‌های بات، مثلاً جواب میو) به هزینه‌ی ارتقا رسید، «ارتقا مقام» رو می‌زنه؛ روی چت‌هایی که `.پیشی` روشنه.
-- بقیه: `.show off|on` (حالت نمایش) · `.sched 10 5 میو` (۱۰ پیام هر ۵ دقیقه روی سرور تلگرام) · `.alias add am .میویی` (میانبر) · `.proxy set socks5://...` · `.اطلاعات`.
-- **ضد اسپم:** زمان نوبت بعدی هر بازی روی دیسک ذخیره می‌شه، پس ریستارت/آپدیت وسط کولداون چیزی نمی‌فرسته · بعد از بالا اومدن سلف ۴۵ ثانیه مهلت هست (`GAME_START_DELAY`) و بازی‌ها با فاصله‌ی ۶ تا ۱۲ ثانیه از هم شروع می‌کنن · بین هر دو پیام بازی توی یه چت ۳ تا ۶ ثانیه فاصله می‌افته · ۳ ریستارت توی ۱۵ دقیقه ← مهلت شروع ۳ دقیقه + هشدار · اگه بات «اسپم» جواب بده ۱۰ دقیقه کنار می‌کشه و خبر می‌ده.
-- بعد از ریستارت حلقه‌ها خودکار برمی‌گردن. اسم‌های انگلیسی قدیمی (`.automeow` `/automeow` و...) هم کار می‌کنن.
+A feature-rich Telegram self-userbot with a web dashboard, colorful inline controls, automation tools, optional multi-user hub, and a multi-provider AI center — designed to run on Railway.
 
-## بروزرسانی با فایل (بدون دیپلوی دوباره)
-1. توی `.پنل` کلید **«🔄 بروزرسانی با فایل»** رو روشن کن (پیش‌فرض خاموشه).
-2. زیپ پروژه (یا فقط فایل‌های `main.py core.py features.py meow.py botpanel.py updater.py boot.py`) رو **توی Saved Messages خودت آپلود کن** (نه فوروارد).
-3. سلف فایل رو بررسی می‌کنه (سینتکس + یه تست import توی پردازش جدا)، اعمال می‌کنه و خودش ریستارت می‌شه؛ نتیجه توی Saved میاد.
-- کلید خاموش باشه: روی فایل ریپلای کن و بنویس `.آپدیت`.
-- `.آپدیت وضعیت` ← فایل‌های بروزرسانی‌شده · `.آپدیت برگشت` ← نسخه‌ی قبلی · `.آپدیت پاک` ← برگشت به کد GitHub.
-- نسخه‌ی بروزرسانی‌شده توی `/data/code` می‌مونه (Volume لازمه). اگه نسخه‌ی جدید دو بار بالا نیاد خودکار قرنطینه می‌شه و نسخه‌ی قبلی اجرا می‌شه. اگه ریپوی GitHub دوباره دیپلوی بشه، نسخه‌ی GitHub جدیدتر حساب می‌شه و بروزرسانی فایلی کنار گذاشته می‌شه.
-- فقط فایل‌های بالا اعمال می‌شن (بقیه نادیده). کتابخونه‌ی جدید (`requirements.txt`) از این راه نصب نمی‌شه.
-- **امنیت:** این یعنی هر کسی که به اکانت تلگرامت دسترسی داشته باشه می‌تونه روی سرور کد اجرا کنه. فقط فایل‌هایی که خودت مستقیم توی Saved آپلود کردی قبول می‌شن؛ فوروارد و فایل چت‌های دیگه رد می‌شن. اگه لازم نداری، کلید رو خاموش بذار.
+## 🚀 Highlights
 
-## حالت هاب (یه بات برای همه، بدون توکن)
-**یه بات مشترک؛ هیچ‌کس بات جدا نمی‌سازه و توکن نمی‌ده.** کاربر `/start` می‌زنه ← «🚀 ساخت سلف من» ← شماره ← کد ← (رمز دومرحله‌ای) ← سلفش **خودکار ساخته و روی همین سرور اجرا می‌شه** (هر نفر یه پردازش جدا). آماده شد، بات همون‌جا خبر می‌ده و دکمه‌ی پنل/مینی‌اپ می‌ده.
+| Feature | Description |
+|---|---|
+| 🎛️ Web Dashboard | Sign in and manage your Telegram session from a browser |
+| 🎨 Inline Panel | Image-based control panel with colored buttons and paginated commands |
+| ⚙️ Automation | Scheduled actions, chat tools, profile utilities and configurable automations |
+| 🐾 MeowAce Tools | Optional game helpers, status tracking and scheduling |
+| 🧠 AI Center | Connect supported AI providers through environment variables |
+| 👥 Multi-user Hub | Optional shared bot for separate user instances |
+| 🔄 File Updates | Optional controlled updates without a full Railway redeploy |
+| 💾 Backup & Restore | Export and restore supported settings |
 
-**راه‌اندازی** (متغیرهای Railway، بعد ریستارت):
-- `HUB_BOT_TOKEN` توکن بات مشترک (BotFather) · `HUB_ADMIN_ID` آیدی عددی خودت (از @userinfobot)
-- `HUB_OPEN` ثبت‌نام باز (پیش‌فرض `1`: هر کس خودکار ثبت می‌شه؛ `0` = فقط با تأیید تو) · `HUB_TRIAL_DAYS` دوره‌ی آزمایشی کاربر جدید به روز (پیش‌فرض `0` = نامحدود) · `MAX_USERS` سقف کاربر (پیش‌فرض ۵)
-- `HUB_DOMAIN` دامنه‌ی عمومی (مثل `xxx.up.railway.app`) برای مینی‌اپ و ورود از صفحه‌ی وب (اختیاری)
-- `API_ID` و `API_HASH` **اختیاریه** (بدونشون از کلید پیش‌فرض داخلی استفاده می‌شه؛ برای امنیت بیشتر کلید خودت رو از my.telegram.org بذار؛ `NO_DEFAULT_API=1` پیش‌فرض رو خاموش می‌کنه).
-- سلف فعلی خودت (`/data/session.txt`) خودکار تبدیل به سلف ادمین می‌شه (کپی؛ چیزی پاک نمی‌شه). برای برگشت به حالت تک‌کاربره `HUB_BOT_TOKEN` رو پاک کن.
-- «توکن قبول نمی‌شه»؟ توکن رو دقیق از BotFather کپی کن؛ فاصله، خط جدید، گیومه و پیشوند `bot` خودکار پاک می‌شن. اگه تلگرام رد کرد، آدرس دامنه (`/?json=1`) توی فیلد `bot.error` دلیلش رو می‌نویسه.
+## 🖥️ Deploy on Railway
 
-**کاربر:** `/start` ← «ساخت سلف من» (یا `/connect`: شماره، **QR** یا **صفحه‌ی وب**) · `/panel` · `/status` · `/app` (مینی‌اپ) · `/cmd me .وضعیت چت` · `/restart` `/stop` `/run` · `/backup` و `/restore` · `/disconnect` (خروج کامل + حذف اطلاعات).
-ورود با QR نیاز به یه دستگاه دیگه‌ی لاگین داره (Settings ← Devices ← Link Desktop Device). ورود از صفحه‌ی وب کد رو باطل نمی‌کنه و خط تیره لازم نداره.
-**اگه کد نیومد:** بات نشون می‌ده کد از چه راهی فرستاده شد (داخل اپ تلگرام / پیامک / تماس) و دکمه‌ی «ارسال دوباره» روش بعدی رو امتحان می‌کنه. شماره‌ی ایرانی رو با `09...` هم می‌تونی بنویسی.
-کد تلگرام رو **با خط تیره بنویس** (`1-2-3-4-5`)، وگرنه تلگرام چون توی چت فرستادی باطلش می‌کنه. پیام شماره/کد/رمز بعد از خوندن پاک می‌شه.
-بعد از وصل شدن، دستورهای نقطه‌ای (`.میویی` `.ماهیگیری` `.پیشی` و...) رو توی خود تلگرام بزن.
+1. Fork or upload this repository to a **private GitHub repository**.
+2. In Railway, create a project and deploy from that repository.
+3. Add the environment variables below.
+4. Create a persistent Volume and set its mount path to `/data`.
+5. In **Settings → Networking**, generate a public domain.
+6. Open the domain and complete the setup flow.
 
-**ادمین:** با ثبت‌نام باز هر کس خودکار ثبت می‌شه (و خبرت می‌کنم)؛ با `/open off` فقط با تأیید تو (دکمه‌ی ۳۰ روز / ۷ روز / نامحدود / رد) · `/open on|off` و `/open trial 7` · `/users` (اشتراک و رم هر سلف) · `/allow id [روز] [نام]` · `/extend id روز` · `/revoke id` · `/stop` `/run` `/restart` + id · `/log id` · `/broadcast متن` · زیپ با کپشن `/update` ← هاب و همه‌ی سلف‌ها بروزرسانی و ریستارت می‌شن.
-**اشتراک:** هر کاربر می‌تونه مدت داشته باشه؛ ۳ روز و ۱ روز قبل از اتمام یادآوری می‌آد و بعد از اتمام سلفش خودکار متوقف می‌شه (اطلاعاتش می‌مونه) و درخواست تمدید برای تو می‌ره.
-**بکاپ خودکار:** هر `BACKUP_HOURS` ساعت (پیش‌فرض ۲۴) از تنظیمات هر کاربر نسخه گرفته می‌شه (۷ تای آخر) · `MAX_RSS_MB` سقف رم هر سلف؛ بیشتر شد ریستارت و خبر می‌ده · هشدارهای سلف‌ها توی بات صاحبشون میاد.
+### Required variable
 
-**نکته‌ها:** هر سلف حدود ۱۰۰ مگابایت رم می‌خوره (سقف رو با پلن Railway هماهنگ کن) · بروزرسانی با فایل توی خود سلف‌ها قفله (کد بین همه مشترکه) · هر سلفی که ۵ بار در ۱۰ دقیقه کرش کنه متوقف می‌شه و به صاحبش خبر می‌رسه · سشن‌ها روی دیسک سرور ذخیره می‌شن، پس ادمین از نظر فنی به اکانت‌ها دسترسی داره؛ به کاربرها این رو می‌گی و بات هم قبل از اتصال هشدار می‌ده.
+| Variable | Purpose |
+|---|---|
+| `PANEL_PASSWORD` | Password for the web dashboard |
 
-## وضعیت سلف
-`.وضعیت` ← مدت روشن بودن، حافظه، اتصال تلگرام، بات پنل، Volume و قابلیت‌های روشن.
-بعد از هر ریستارت توی Saved Messages پیام «🔄 سلف روشن شد» میاد (`.وضعیت اعلان off` خاموشش می‌کنه).
+### Optional variables
 
-## پشتیبان‌گیری
-`.پشتیبان` ← فایل `self-settings.json` (بدون توکن بات و سشن) توی Saved Messages؛
-`.بازیابی` روی همون فایل ریپلای کن تا تنظیمات برگرده.
+| Variable | Purpose |
+|---|---|
+| `API_ID`, `API_HASH` | Your Telegram API credentials; setup may also request them in the dashboard |
+| `TIMEZONE` | Time zone; default: `Asia/Tehran` |
+| `PANEL_TTL` | Inline panel lifetime in seconds; default: `300` |
+| `AI_MODEL` | Preferred AI model |
+| `OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY` | Optional AI provider keys |
+| `AI_BASE_URL`, `AI_API_KEY`, `AI_CUSTOM_MODEL` | Optional OpenAI-compatible endpoint |
 
-## قیمت ارز
-`.ارز` نرخ **بازار آزاد** رو به تومان می‌خونه. منبع اصلی NerkhAra است (JSON عمومی، بدون API Key، بازسازی داده هر ۱۰ دقیقه) و منبع جایگزین، آینه‌ی عمومی Iran Market روی GitHub است (به‌روزرسانی حدود هر ۳۰ دقیقه). در صورت عدم دسترسی، TGJU هم به‌عنوان پشتیبان امتحان می‌شود و آخرین نرخ سالم روی دیسک نگه‌داری می‌شود.
-`.ارز دلار` · `.ارز 100 یورو` · `.ارز سکه` · `.ارز طلا`. منابع: https://nerkhara.com/en/api/ و https://github.com/iran-market/iran-market.github.io
+Never commit passwords, API keys, bot tokens, or Telegram session files to GitHub.
 
-## قابلیت‌ها
-پروفایل: ساعت، تاریخ شمسی · پیام‌ها: حالت متن، متن‌های آماده، پاسخ خودکار، منشی، آفلاین، ضد حذف، ذخیره منشن‌ها ·
-گروه: نگهبان چت، قفل‌ها، فیلتر کلمات، عضویت اجباری، سکوت، ریکت · کاربر: دوستان/نادیده، اطلاعات، بلاک، سین خودکار،
-همیشه آنلاین · ابزار: پینگ، حذف، ماشین‌حساب، ترجمه، هوش مصنوعی، دانلودر، ذخیره، لوگو · سرگرمی: انیمیشن، تقلب،
-اکشن · جستجو: اخبار، آهنگ، ویدیو، قیمت ارز، تبدیل متن به صدا · کامنت اول.
-نمونه‌ی هر کدوم توی پنل یا با `.راهنما` هست.
+## 🎮 Quick start
 
-## نکته‌ها
-- قابلیت‌های گروهی (نگهبان، قفل، فیلتر، عضویت اجباری، سکوت) فقط وقتی کار می‌کنن که توی اون گروه ادمین با دسترسی حذف پیام باشی.
-- Google TTS فارسی نداره.
-- این ربات اسپم/تبلیغ گروهی و ذخیره‌ی عکس‌های تایمردار نداره (عمداً).
+After deployment, open your Railway domain and follow the login flow:
 
-## قابلیت‌های اضافه‌شده
-- `.آمارچت` یا `.آمارچت 30` ← تعداد پیام‌ها، رسانه‌ها و کاربران فعال در ۷ تا ۳۰ روز اخیر (حداکثر ۳۰۰۰ پیام بررسی می‌شود).
-- `.فونت 1 متن` تا `.فونت 9 متن` ← Bold، Italic، Monospace، Double-struck، Sans، Sans Bold، Sans Italic، Fraktur و Bold Fraktur؛ متن فارسی و ایموجی حفظ می‌شوند.
-- صفحه‌ی «ساعت» در پنل، ۹ گزینه‌ی فونت عددی دارد؛ با انتخاب هرکدام فوراً روی ساعت پروفایل اعمال می‌شود. `.ساعت اسم علی` و `.ساعت فامیلی رضایی` هم نام و نام خانوادگی پروفایل را تنظیم می‌کنند.
-- `.دی‌سی` ← شماره دیتاسنتر و نشانی سرور اتصال نشست تلگرام.
+1. Enter your dashboard password.
+2. Provide Telegram API credentials if requested.
+3. Enter your phone number and complete Telegram verification.
+4. Open Telegram and send `.راهنما` to view available commands.
+5. Send `.پنل` to open the inline control panel.
 
-## نرخ ارز
-`.ارز` (یا `.نرخ` / `.قیمت`) ← دلار، یورو، پوند، درهم، لیر، طلا و سکه‌ها به تومان با درصد تغییر · `.ارز دلار` · `.ارز 100 یورو` · `.ارز سکه` · `.ارز طلا`. منبع اصلی NerkhAra (بدون API Key)، جایگزین Iran Market روی GitHub و سپس TGJU است. قیمت‌ها به ریال نرمال و در خروجی تومان نمایش داده می‌شوند؛ آخرین نرخ سالم نیز کش می‌شود.
+### Colorful Telegram panel
 
-## پنل «Railway Self» (عکس + دکمه‌های رنگی)
-`.پنل` (توی هر چت) یا هر پیامی به بات ← یه پیام **عکس‌دار** با بنر، کپشن و دکمه‌های رنگی:
-- صفحه‌ی اصلی: `[مدیریت سلف | حساب کاربری]` + `[بستن پنل]`.
-- «مدیریت سلف» ← **Self Commands | دستورات سلف**: ۸ دکمه‌ی سبز (مدیریت سلف، اطلاعات، پینگ، بازی میویی، مدیریت گروه، پشتیبان، عضویت اجباری، ارز و طلا) + شماره‌ی صفحه‌ها (آبی، `「n」` = صفحه‌ی فعلی) که همه‌ی ۵۷ قابلیت رو ۸تا‌۸تا نشون می‌دن + بازگشت (قرمز).
-- هر قابلیت: وضعیت، راهنما، نمونه‌ها و دکمه‌ی روشن/خاموش.
-- نیازها: inline mode توی BotFather (`/setinline`)؛ یه بار به بات `/start` بزن (بنر یه بار آپلود و `file_id`اش ذخیره می‌شه). اگه نشد و دامنه‌ی عمومی داری، بنر از `/banner.jpg` سرو می‌شه.
-- بنر: `assets/banner.jpg`؛ با `python3 tools/make_banner.py` دوباره بساز (اسم و تگ‌لاین بالای فایل). `/classic` توی بات پنل قدیمی رو باز می‌کنه.
-"# self-railway" 
+1. Create a bot with [@BotFather](https://t.me/BotFather).
+2. Enable inline mode using `/setinline`.
+3. Add the bot token in the dashboard.
+4. Start the bot once, then send `.پنل` from your Telegram account.
 
+The panel supports navigation, feature details, toggles and automatic expiration. Button styling depends on Telegram client support.
 
-## مرکز هوش مصنوعی چندمدلی (AI Center)
-- مینی‌اپ: تب «🧠 AI Center» برای مشاهده سرویس‌های دارای کلید، انتخاب ارائه‌دهنده و مدل، و آزمایش چت.
-- کلیدها فقط از متغیرهای محیطی Railway خوانده می‌شوند و در UI یا فایل تنظیمات نمایش/ذخیره نمی‌شوند.
-- متغیرهای استاندارد: `OPENAI_API_KEY`، `ANTHROPIC_API_KEY`، `GEMINI_API_KEY`، `DEEPSEEK_API_KEY`، `GROQ_API_KEY`، `OPENROUTER_API_KEY`، `MISTRAL_API_KEY`، `XAI_API_KEY`، `TOGETHER_API_KEY`، `FIREWORKS_API_KEY`، `CEREBRAS_API_KEY`، `PERPLEXITY_API_KEY`، `SAMBANOVA_API_KEY`، `NVIDIA_API_KEY`.
-- API سازگار با OpenAI: `AI_BASE_URL`، `AI_API_KEY`، `AI_CUSTOM_MODEL`.
-- دستورات تلگرام: `.هوش providers`، `.هوش provider openai`، `.هوش model gpt-4o-mini`، `.هوش status`، `.هوش سوال شما`.
-- انتخاب ارائه‌دهنده و مدل در `settings.json` ذخیره می‌شود؛ کلید API ذخیره نمی‌شود.
+## 🧩 Useful commands
+
+| Command | Action |
+|---|---|
+| `.راهنما` | Show command help |
+| `.پنل` | Open the control panel |
+| `.وضعیت` | Show runtime and connection status |
+| `.گزارش` | Show supported activity statistics |
+| `.پشتیبان` | Export supported settings |
+| `.بازیابی` | Restore settings from a backup file |
+| `.فرمت quote` | Enable quote-style message formatting |
+| `.فرمت off` | Disable quote-style formatting |
+| `.هوش status` | Show AI provider status |
+| `.هوش سوال شما` | Send a prompt to the selected AI provider |
+
+Use `.راهنما` inside Telegram for the full command list and usage examples.
+
+## 🧠 AI Center
+
+The dashboard can show configured providers and let you select a provider/model. Supported integrations include OpenAI, Anthropic, Gemini, DeepSeek, Groq, OpenRouter and other compatible services.
+
+Add provider keys through Railway Variables. Keys are intended to remain in environment variables and should never be pasted into public source files.
+
+## 👥 Optional multi-user hub
+
+The shared hub can be enabled with Railway variables:
+
+- `HUB_BOT_TOKEN` — token for the shared Telegram bot.
+- `HUB_ADMIN_ID` — numeric Telegram ID of the administrator.
+- `HUB_OPEN` — whether new registrations are open (`1` or `0`).
+- `HUB_TRIAL_DAYS` — optional trial duration.
+- `MAX_USERS` — maximum number of user instances.
+- `HUB_DOMAIN` — public Railway domain for web and mini-app access.
+
+Keep registration restricted unless you are prepared to operate and support multiple user sessions. Review the access and data implications before enabling this mode.
+
+## 🛡️ Security & privacy
+
+> **Important:** This project handles Telegram login sessions. Anyone who can access the server, its persistent Volume, or its administrative credentials may be able to access session data.
+
+- Use a private repository and strong, unique dashboard password.
+- Store secrets only in Railway Variables.
+- Restrict access to the Railway project and its Volume.
+- Only enable file-based updates if you understand the risks of executing uploaded code.
+- Tell every hub user how their session data is stored and who can administer the server.
+- Use automation responsibly and follow Telegram's rules. Excessive activity may lead to rate limits or account restrictions.
+
+## 📁 Project structure
+
+```text
+.
+├── main.py          # Web dashboard and application entry point
+├── core.py          # Core configuration and feature registry
+├── features.py      # Telegram commands and features
+├── meow.py          # MeowAce automation helpers
+├── botpanel.py      # Inline control panel
+├── hub.py           # Optional multi-user hub
+├── miniapp.py       # Telegram mini-app
+├── boot.py          # Startup routines
+├── updater.py       # Optional file update manager
+├── assets/          # Images and visual assets
+├── fonts/           # Fonts
+├── tools/           # Asset utilities
+├── requirements.txt
+└── Procfile
+```
+
+## 💜 Credits
+
+Built for Telegram automation and Railway deployment. If you find an issue, include the relevant log excerpt and steps to reproduce it — never share session files, login codes, passwords, or API keys.
+
+<div align="center">
+
+**Made with ⚡ for Telegram power users**
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:7C3AED,50:2563EB,100:06B6D4&height=110&section=footer" width="100%" alt="Animated gradient footer">
+
+</div>
